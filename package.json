@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "devstart": "nodemon server/index.js",
+    "watch": "webpack -w",
     "test": "jest"
   },
   "repository": {
@@ -19,6 +20,9 @@
   },
   "homepage": "https://github.com/lmwaghore/MVP#readme",
   "dependencies": {
+    "@babel/core": "^7.13.14",
+    "@babel/preset-env": "^7.13.12",
+    "@babel/preset-react": "^7.13.13",
     "babel": "^6.23.0",
     "babel-loader": "^8.2.2",
     "cors": "^2.8.5",
