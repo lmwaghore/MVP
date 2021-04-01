@@ -9,10 +9,11 @@ class App extends React.Component {
 			infected: false,
 			entities: [],
 			app: new PIXI.Application({
-				width: 1000,
-				height: 1000,
+				autoResize: true,
+				resolution: devicePixelRatio,
 				backgroundAlpha: 0.1,
 			}),
+			paused: false,
 		};
 		this.pixiContainer = null;
 	}
@@ -21,77 +22,100 @@ class App extends React.Component {
 		const { entities, app } = this.state;
 		let tempArr = entities.slice();
 		const texture = PIXI.Texture.from("../../virus.png");
-		const greenSquare = new PIXI.Sprite(texture);
-		greenSquare.position.set(
+		const greenEntity = new PIXI.Sprite(texture);
+		greenEntity.position.set(
 			(app.screen.width - 100) / 2,
 			(app.screen.height - 100) / 2
 		);
-		greenSquare.width = 50;
-		greenSquare.height = 50;
-		greenSquare.acceleration = new PIXI.Point(10);
-		greenSquare.mass = 3;
-		const redSquare = new PIXI.Sprite(texture);
-		redSquare.position.set(
+		greenEntity.width = 50;
+		greenEntity.height = 50;
+		greenEntity.acceleration = new PIXI.Point(3);
+		greenEntity.mass = 3;
+		const redEntity = new PIXI.Sprite(texture);
+		redEntity.position.set(
 			(app.screen.width - 100) / 3,
 			(app.screen.height - 100) / 3
 		);
-		redSquare.width = 50;
-		redSquare.height = 50;
-		redSquare.tint = "0x00FF00";
+		redEntity.width = 50;
+		redEntity.height = 50;
+		redEntity.tint = "0x00FF00";
 		0;
-		redSquare.acceleration = new PIXI.Point(10);
-		redSquare.mass = 1;
-		tempArr.push(redSquare, greenSquare);
+		redEntity.acceleration = new PIXI.Point(3);
+		redEntity.mass = 1;
+		tempArr.push(redEntity, greenEntity);
 		this.setState(
 			{
 				entities: tempArr,
 			},
-			() => {
-				this.pixiUpdate(document.getElementById("canvas"));
-				//app.stage.addChild(greenSquare1);
-			}
+			this.pixiUpdate
 		);
 	}
 
-	addSquare = () => {
+	addEntity = () => {
 		const { app, entities, infected } = this.state;
 		const texture = PIXI.Texture.from("../../virus.png");
-		const greenSquare1 = new PIXI.Sprite(texture);
+		const greenEntity1 = new PIXI.Sprite(texture);
 		// If so, reverse acceleration in that direction
 		const mouseCoords = app.renderer.plugins.interaction.mouse.global;
-		greenSquare1.position.set(mouseCoords.x, mouseCoords.y);
-		greenSquare1.width = 50;
-		greenSquare1.height = 40;
+		greenEntity1.position.set(mouseCoords.x, mouseCoords.y);
+		greenEntity1.width = 50;
+		greenEntity1.height = 50;
 		if (infected) {
-			greenSquare1.tint = "0x00FF00";
+			greenEntity1.tint = "0x00FF00";
 		}
 
-		greenSquare1.acceleration = new PIXI.Point(Math.random() * 10, Math.random() * 10);
-		greenSquare1.mass = 3;
+		greenEntity1.acceleration = new PIXI.Point(
+			Math.random() * 1,
+			Math.random() * 1
+		);
+		greenEntity1.mass = 1;
 		let tempArr = entities.slice();
-		tempArr.push(greenSquare1);
+		tempArr.push(greenEntity1);
 		this.setState(
 			{
 				entities: tempArr,
 			},
-			() => {
-				this.pixiUpdate(document.getElementById("canvas"));
-				//app.stage.addChild(greenSquare1);
-			}
+			this.pixiUpdate
 		);
 	};
 
-	pixiUpdate = (element) => {
+	pauser = (bool) => {
+		const { app, paused } = this.state;
+		if(bool && !paused) {
+			this.setState({
+				paused: bool
+			}, () => app.ticker.stop())
+		}
+		if(!bool && paused) {
+			this.setState({
+				paused: bool
+			}, () => app.ticker.start())
+		}
+	};
+
+	resize = () => {
+		const { app } = this.state;
+		const parent = app.view.parentNode;
+		if (parent) {
+			app.renderer.resize(parent.clientWidth, parent.clientHeight);
+		}
+	};
+
+	pixiUpdate = () => {
+		window.addEventListener("resize", this.resize);
+		this.resize();
+
 		const { app, entities } = this.state;
-		this.pixiContainer = element;
+		this.pixiContainer = document.getElementById("canvas");
 		if (this.pixiContainer) {
 			this.pixiContainer.appendChild(app.view);
 
 			// Strength of the impulse push between two objects
-			const impulsePower = 3;
+			const impulsePower = 4;
+			const maxAcceleration = 13;
 
 			// Test For Hit
-			// A basic AABB check between two different squares
+			// A basic AABB check between two different Entitys
 			function testForAABB(object1, object2) {
 				const bounds1 = object1.getBounds();
 				const bounds2 = object2.getBounds();
@@ -144,22 +168,28 @@ class App extends React.Component {
 			}
 
 			// Listen for animate update
-			app.ticker.add((delta) => {
+			app.ticker.add(() => {
+				// if(entities[0]) {
+					// console.log(entities[0].acceleration);
+				// }
 				for (let i = 0; i < entities.length; i++) {
+					//deaccelerate at a rate of 0.001 per tick
 					entities[i].acceleration.set(
-						entities[i].acceleration.x * 0.99,
-						entities[i].acceleration.y * 0.99
+						entities[i].acceleration.x * 0.999,
+						entities[i].acceleration.y * 0.999
 					);
-					if (entities[i].x < 0 || entities[i].x > app.screen.width - 100) {
+					//check its not going out of bounds
+					if (entities[i].x < 0 || entities[i].x > app.screen.width - 50) {
 						entities[i].acceleration.x = -entities[i].acceleration.x;
 					}
-					if (entities[i].y < 0 || entities[i].y > app.screen.height - 100) {
+					if (entities[i].y < 0 || entities[i].y > app.screen.height - 50) {
 						entities[i].acceleration.y = -entities[i].acceleration.y;
 					}
+					//check for collisions with all other entities
 					for (let j = i + 1; j < entities.length; j++) {
 						if (testForAABB(entities[i], entities[j])) {
 							// Calculate the changes in acceleration that should be made between
-							// each square as a result of the collision
+							// each Entity as a result of the collision
 							const collisionPush = collisionResponse(entities[i], entities[j]);
 							if (
 								entities[i].tint === "0x00FF00" ||
@@ -168,7 +198,7 @@ class App extends React.Component {
 								entities[i].tint = "0x00FF00";
 								entities[j].tint = "0x00FF00";
 							}
-							// Set the changes in acceleration for both squares
+							// Set the changes in acceleration for both Entitys
 							entities[j].acceleration.set(
 								collisionPush.x * entities[i].mass,
 								collisionPush.y * entities[i].mass
@@ -179,8 +209,31 @@ class App extends React.Component {
 							);
 						}
 					}
-					entities[i].x += entities[i].acceleration.x * delta;
-					entities[i].y += entities[i].acceleration.y * delta;
+					//never go past max acceleration
+					if (entities[i].acceleration.x > maxAcceleration) {
+						entities[i].acceleration.set(
+							maxAcceleration,
+							entities[i].acceleration.y
+						);
+					} else if (entities[i].acceleration.x < -maxAcceleration) {
+						entities[i].acceleration.set(
+							-maxAcceleration,
+							entities[i].acceleration.y
+						);
+					}
+					if (entities[i].acceleration.y > maxAcceleration) {
+						entities[i].acceleration.set(
+							entities[i].acceleration.x,
+							maxAcceleration
+						);
+					} else if (entities[i].acceleration.y < -maxAcceleration) {
+						entities[i].acceleration.set(
+							entities[i].acceleration.x,
+							-maxAcceleration
+						);
+					}
+					entities[i].x += entities[i].acceleration.x;
+					entities[i].y += entities[i].acceleration.y;
 				}
 			});
 			for (let i = 0; i < entities.length; i++) {
@@ -212,9 +265,11 @@ class App extends React.Component {
 				>
 					add healthy
 				</button>
+				<button onClick={() => this.pauser(true)}>pause</button>
+				<button onClick={() => this.pauser(false)}>play</button>
 				<Canvas
-					squareArr={entities}
-					adder={this.addSquare}
+					EntityArr={entities}
+					adder={this.addEntity}
 					update={this.pixiUpdate}
 				/>
 			</React.Fragment>
