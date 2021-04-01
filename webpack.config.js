@@ -14,6 +14,25 @@ module.exports = {
 					loader: "babel-loader",
 					options: {
 						presets: ["@babel/preset-env", "@babel/preset-react"],
+						plugins: [
+							[
+								"@babel/plugin-proposal-class-properties",
+								{
+									"loose": true
+								}
+							],
+							[
+								"file-loader",
+								{
+									"name": "[hash].[ext]",
+									"extensions": ["png", "jpg", "jpeg", "gif", "svg"],
+									"publicPath": "/public",
+									"outputPath": "/public",
+									"context": "",
+									"limit": 0
+								}
+							]
+						]
 					},
 				},
 			},
